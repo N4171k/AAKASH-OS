@@ -1,0 +1,62 @@
+[
+  {
+    "id": "in5ofo1hnfboipyxupsg",
+    "user_id": "cd9977c2-bff5-4486-9323-bee84e07c348",
+    "name": "DSA print.docx",
+    "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "cloudinary_public_id": "in5ofo1hnfboipyxupsg",
+    "cloudinary_url": "https://res.cloudinary.com/dvrjdq5yv/raw/upload/v1780419718/in5ofo1hnfboipyxupsg",
+    "file_size": 8514,
+    "created_at": "2026-06-02T17:01:58.482Z"
+  },
+  {
+    "id": "dt3xmxrzxq0udhkplso1",
+    "user_id": "cd9977c2-bff5-4486-9323-bee84e07c348",
+    "name": "DSA print.docx",
+    "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "cloudinary_public_id": "dt3xmxrzxq0udhkplso1",
+    "cloudinary_url": "https://res.cloudinary.com/dvrjdq5yv/raw/upload/v1780419561/dt3xmxrzxq0udhkplso1",
+    "file_size": 8514,
+    "created_at": "2026-06-02T16:59:21.412Z"
+  },
+  {
+    "id": "jtxexzv4bsuz011glrak",
+    "user_id": "cd9977c2-bff5-4486-9323-bee84e07c348",
+    "name": "DSA print.docx",
+    "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "cloudinary_public_id": "jtxexzv4bsuz011glrak",
+    "cloudinary_url": "https://res.cloudinary.com/dvrjdq5yv/raw/upload/v1780418931/jtxexzv4bsuz011glrak",
+    "file_size": 7096016,
+    "created_at": "2026-06-02T16:48:51.372Z"
+  },
+  {
+    "id": "wohizcfgbcblaqdv8lly",
+    "user_id": "cd9977c2-bff5-4486-9323-bee84e07c348",
+    "name": "aa.png",
+    "mime_type": "image/png",
+    "cloudinary_public_id": "wohizcfgbcblaqdv8lly",
+    "cloudinary_url": "https://res.cloudinary.com/dvrjdq5yv/image/upload/v1780418909/wohizcfgbcblaqdv8lly.png",
+    "file_size": 9434,
+    "created_at": "2026-06-02T16:48:29.735Z"
+  },
+  {
+    "id": "ilm3gzuwc8ksvonlaytn",
+    "user_id": "cd9977c2-bff5-4486-9323-bee84e07c348",
+    "name": "NAITIK TIWARI - A60205223195 - DCCN - ASSIGNMENT.pdf",
+    "mime_type": "application/pdf",
+    "cloudinary_public_id": "ilm3gzuwc8ksvonlaytn",
+    "cloudinary_url": "https://res.cloudinary.com/dvrjdq5yv/image/upload/v1779769099/ilm3gzuwc8ksvonlaytn.pdf",
+    "file_size": 2553503,
+    "created_at": "2026-05-26T04:18:19.009Z"
+  },
+  {
+    "id": "ogfksupx3jurm7hm1hzj",
+    "user_id": "2921eb91-8353-435d-9d74-9fc6f067b976",
+    "name": "aasman-os-recovery-codes (2).pdf",
+    "mime_type": "application/pdf",
+    "cloudinary_public_id": "ogfksupx3jurm7hm1hzj",
+    "cloudinary_url": "https://res.cloudinary.com/dvrjdq5yv/image/upload/v1779353062/ogfksupx3jurm7hm1hzj.pdf",
+    "file_size": 4365,
+    "created_at": "2026-05-21T08:44:21.878Z"
+  }
+]
