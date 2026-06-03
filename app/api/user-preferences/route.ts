@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const user = await getUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const supabase = getSupabaseAdminClient()
+    const supabase = getSupabaseAdminClient() as any
     const { data, error } = await supabase
       .from('user_preferences')
       .select('*')
@@ -83,7 +83,7 @@ export async function PUT(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const supabase = getSupabaseAdminClient()
+    const supabase = getSupabaseAdminClient() as any
 
     // 1. Fetch existing preferences first to allow partial updates safely
     const { data: existingPrefs } = await supabase
