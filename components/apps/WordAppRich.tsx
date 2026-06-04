@@ -32,6 +32,15 @@ import TableHeader from '@tiptap/extension-table-header'
 import TableCellKit from '@tiptap/extension-table-cell'
 import TextAlign from '@tiptap/extension-text-align'
 
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    lineHeight: {
+      setLineHeight: (lineHeight: any) => ReturnType
+      unsetLineHeight: () => ReturnType
+    }
+  }
+}
+
 const TEMPLATE_MARKUP = {
   blank: '<p></p>',
   resume: `
@@ -137,12 +146,12 @@ const LineHeight = Extension.create({
   addCommands() {
     return {
       setLineHeight:
-        lineHeight =>
-        ({ chain }) =>
+        (lineHeight: any) =>
+        ({ chain }: any) =>
           chain().focus().updateAttributes('paragraph', { lineHeight }).updateAttributes('heading', { lineHeight }).updateAttributes('listItem', { lineHeight }).run(),
       unsetLineHeight:
         () =>
-        ({ chain }) =>
+        ({ chain }: any) =>
           chain().focus().updateAttributes('paragraph', { lineHeight: null }).updateAttributes('heading', { lineHeight: null }).updateAttributes('listItem', { lineHeight: null }).run(),
     }
   },
@@ -359,14 +368,9 @@ async function inlineRunsFromElement(element: HTMLElement, inherited: InlineStyl
     }
 
     if (tag === 'a') {
-      const linkedRuns = await inlineRunsFromElement(child, nextStyle)
-      runs.push(
-        ...linkedRuns.map((run) =>
-          run instanceof TextRun
-            ? run.duplicate({ underline: {}, color: '0563C1' })
-            : run,
-        ),
-      )
+      const linkStyle = { ...nextStyle, underline: true, color: '0563C1' }
+      const linkedRuns = await inlineRunsFromElement(child, linkStyle)
+      runs.push(...linkedRuns)
       continue
     }
 
@@ -412,7 +416,7 @@ async function imageRunFromElement(element: HTMLImageElement) {
     return new ImageRun({
       data,
       transformation: { width, height },
-    })
+    } as any)
   } catch {
     return null
   }
