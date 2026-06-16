@@ -18,7 +18,6 @@ export default function RegisterClient() {
   const router = useRouter()
   const [name,    setName]    = useState('')
   const [email,   setEmail]   = useState('')
-  const [phone,   setPhone]   = useState('')
   const [selectedApps, setSelectedApps] = useState<string[]>(['files', 'notes'])
   const [avatarDataUrl, setAvatarDataUrl] = useState('')
   const [avatarName,    setAvatarName]    = useState('')
@@ -29,8 +28,8 @@ export default function RegisterClient() {
 
   const username = useMemo(() => deriveUsername(name, email), [name, email])
   const canSubmit = useMemo(
-    () => Boolean(name && email && phone && selectedApps.length > 0 && username),
-    [name, email, phone, selectedApps, username],
+    () => Boolean(name && email && selectedApps.length > 0 && username),
+    [name, email, selectedApps, username],
   )
 
   const toggleApp = (id: string) =>
@@ -55,11 +54,11 @@ export default function RegisterClient() {
       const res  = await fetch('/api/auth/register/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, email, phone, selectedApps, avatarDataUrl: avatarDataUrl || null }),
+        body: JSON.stringify({ name, username, email, selectedApps, avatarDataUrl: avatarDataUrl || null }),
       })
       const data = await res.json()
       if (!res.ok) { setMessage(data?.error || 'Failed to start registration'); return }
-      router.push(`/verify?username=${encodeURIComponent(username)}&phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`)
+      router.push(`/verify?username=${encodeURIComponent(username)}&email=${encodeURIComponent(email)}`)
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to start registration')
     } finally {
@@ -506,19 +505,7 @@ export default function RegisterClient() {
                 />
               </div>
 
-              <div className="phone-row">
-                <div className="phone-prefix">+91</div>
-                <div className={`field-wrap ${focused === 'phone' ? 'focused' : ''}`}>
-                  <input
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    onFocus={() => setFocused('phone')}
-                    onBlur={() => setFocused(null)}
-                    placeholder="Phone number"
-                    inputMode="tel"
-                  />
-                </div>
-              </div>
+
 
               {username && (
                 <div className="username-chip">

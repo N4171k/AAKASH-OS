@@ -4,17 +4,13 @@ import { jsPDF } from 'jspdf'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, KeyboardEvent } from 'react'
-import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
-import { getFirebaseAuth } from '../../../lib/firebase/client'
-import { normalizeE164PhoneNumber } from '../../../lib/auth/phone'
 
 export default function VerifyClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const phone = useMemo(() => searchParams.get('phone') || '', [searchParams])
   const username = useMemo(() => searchParams.get('username') || '', [searchParams])
   const email = useMemo(() => searchParams.get('email') || '', [searchParams])
-  const [phase, setPhase] = useState<'sms' | 'setup' | 'done'>('sms')
+  const [phase, setPhase] = useState<'sms' | 'setup' | 'done'>('sms') // 'sms' represents the code input phase visually
   const [code, setCode] = useState('')
   const [totpCode, setTotpCode] = useState('')
   const [secret, setSecret] = useState('')
@@ -22,40 +18,35 @@ export default function VerifyClient() {
   const [backupCodes, setBackupCodes] = useState<string[]>([])
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [smsSent, setSmsSent] = useState(false)
-  const confirmationResultRef = useRef<ConfirmationResult | null>(null)
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null)
-  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null)
-  const normalizedPhone = useMemo(() => normalizeE164PhoneNumber(phone), [phone])
+  const [emailSent, setEmailSent] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
 
-  const sendSmsCode = async () => {
-    if (!normalizedPhone || !username) {
-      setMessage('Enter the phone number you used when registering.')
+  const sendEmailCode = async () => {
+    if (!email || !username) {
+      setMessage('Enter the email and username you used when registering.')
       return
     }
 
     try {
       setLoading(true)
-      setMessage('Sending Firebase verification code...')
+      setMessage('Sending verification code to your email...')
 
-      const auth = getFirebaseAuth()
+      const response = await fetch('/api/verify/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      })
 
-      if (!recaptchaVerifierRef.current) {
-        if (!recaptchaContainerRef.current) {
-          throw new Error('Firebase reCAPTCHA container is missing')
-        }
+      const result = await response.json()
 
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-          size: 'invisible',
-        })
-
-        await recaptchaVerifierRef.current.render()
+      if (!response.ok) {
+        setMessage(result?.error || 'Failed to send verification code')
+        return
       }
 
-      const confirmation = await signInWithPhoneNumber(auth, normalizedPhone, recaptchaVerifierRef.current)
-      confirmationResultRef.current = confirmation
-      setSmsSent(true)
-      setMessage(`Code sent to ${normalizedPhone}`)
+      setEmailSent(true)
+      setCooldown(60) // 60-second cooldown
+      setMessage(`Code sent to ${email}`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to send verification code')
     } finally {
@@ -64,30 +55,29 @@ export default function VerifyClient() {
   }
 
   useEffect(() => {
-    if (phase !== 'sms' || smsSent || !normalizedPhone || !username) {
+    if (phase !== 'sms' || emailSent || !email || !username) {
       return
     }
-    void sendSmsCode()
-  }, [phase, normalizedPhone, smsSent, username])
+    void sendEmailCode()
+  }, [phase, email, emailSent, username])
 
-  const verifyPhone = async () => {
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  const verifyEmailCode = async () => {
     setLoading(true)
     setMessage('')
 
     try {
-      const confirmationResult = confirmationResultRef.current
-      if (!confirmationResult) {
-        setMessage('Send the Firebase code again before verifying.')
-        return
-      }
-
-      const credential = await confirmationResult.confirm(code)
-      const firebaseIdToken = await credential.user.getIdToken()
-
       const response = await fetch('/api/verify/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalizedPhone, firebaseIdToken }),
+        body: JSON.stringify({ username, code }),
       })
 
       const result = await response.json()
@@ -111,7 +101,7 @@ export default function VerifyClient() {
         setQrDataUrl(setupResult?.qrDataUrl || '')
         setBackupCodes(Array.isArray(setupResult?.backupCodes) ? setupResult.backupCodes : [])
         setPhase('setup')
-        setMessage('Phone verified. Scan the QR code in your authenticator app.')
+        setMessage('Email verified. Scan the QR code in your authenticator app.')
       } else {
         setMessage('Invalid code')
       }
@@ -236,7 +226,7 @@ export default function VerifyClient() {
                   Let's <br />Confirm It <br />Is You!
                 </h1>
                 <p className="mt-5 max-w-[320px] text-[18px] leading-relaxed text-[#608eb9]">
-                  We've sent a 6-digit secure code via Firebase to your phone.
+                  We've sent a 6-digit secure code to your email address.
                 </p>
 
                 <div className="mt-10 flex gap-2 sm:gap-3">
@@ -261,26 +251,26 @@ export default function VerifyClient() {
                     </p>
                   ) : (
                     <p className="text-[14px] font-medium text-[#5d87ae]">
-                      {normalizedPhone ? `Code sent to ${normalizedPhone}` : 'Enter the phone number you used when registering.'}
+                      {email ? `Code sent to ${email}` : 'Enter the email address you used when registering.'}
                     </p>
                   )}
                 </div>
 
                 <div className="mt-10 flex flex-col gap-4">
                   <button 
-                    onClick={verifyPhone} 
-                    disabled={loading || code.length !== 6 || !phone || !username} 
+                    onClick={verifyEmailCode} 
+                    disabled={loading || code.length !== 6 || !email || !username} 
                     className="flex h-14 w-full items-center justify-center rounded-[16px] bg-[#2e95ff] text-[16px] font-bold text-white shadow-[0_6px_0_#1a76d2] transition-all hover:bg-[#1f87f5] hover:translate-y-[2px] hover:shadow-[0_4px_0_#1a76d2] active:translate-y-[6px] active:shadow-none disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    {loading ? 'Verifying...' : 'Verify Phone'}
+                    {loading ? 'Verifying...' : 'Verify Email'}
                   </button>
                   <button 
                     type="button" 
-                    onClick={sendSmsCode} 
-                    disabled={loading || !phone || !username} 
+                    onClick={sendEmailCode} 
+                    disabled={loading || cooldown > 0 || !email || !username} 
                     className="flex h-14 w-full items-center justify-center rounded-[16px] bg-white border-2 border-[#dceeff] text-[15px] font-bold text-[#2e95ff] shadow-[0_4px_0_#dceeff] transition-all hover:bg-[#f8fbff] hover:translate-y-[2px] hover:shadow-[0_2px_0_#dceeff] active:translate-y-[4px] active:shadow-none disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    Resend Code
+                    {cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
                   </button>
                 </div>
               </div>
@@ -417,7 +407,6 @@ export default function VerifyClient() {
           </div>
         </div>
       </div>
-      <div ref={recaptchaContainerRef} className="sr-only" aria-hidden />
     </main>
   )
 }
