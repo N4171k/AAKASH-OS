@@ -1,6 +1,5 @@
 import { uploadToCloudinary } from '../lib/cloudinary'
-import { mkdir, readFile, writeFile } from 'fs/promises'
-import path from 'path'
+import { getSupabaseAdminClient } from '../lib/supabase/admin'
 
 interface StoredFile {
   id: string
@@ -13,31 +12,37 @@ interface StoredFile {
   created_at: string
 }
 
-const storageDir = path.join(process.cwd(), '.data')
-const storageFile = path.join(storageDir, 'cloud-drive-files.json')
-
-async function readStoredFiles() {
+export async function listFilesForUser(userId: string): Promise<StoredFile[]> {
   try {
-    const raw = await readFile(storageFile, 'utf8')
-    return JSON.parse(raw) as StoredFile[]
-  } catch {
+    const supabase = getSupabaseAdminClient()
+    const { data: files, error } = await supabase
+      .from('files')
+      .select('*')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return (files || []).map((file: any) => ({
+      id: file.id,
+      user_id: file.user_id,
+      name: file.name,
+      cloudinary_url: file.cloudinary_url || '',
+      cloudinary_public_id: file.cloudinary_public_id || '',
+      file_size: Number(file.file_size || 0),
+      mime_type: file.mime_type || 'application/octet-stream',
+      created_at: file.created_at,
+    }))
+  } catch (err) {
+    console.error('listFilesForUser error', err)
     return []
   }
 }
 
-async function writeStoredFiles(files: StoredFile[]) {
-  await mkdir(storageDir, { recursive: true })
-  await writeFile(storageFile, JSON.stringify(files, null, 2), 'utf8')
-}
-
-export async function listFilesForUser(userId: string) {
-  const files = await readStoredFiles()
-  return files
-    .filter((file) => file.user_id === userId)
-    .sort((left, right) => right.created_at.localeCompare(left.created_at))
-}
-
-export async function uploadUserFile(userId: string, filePathOrBase64: string, name: string, mimeType = 'application/octet-stream') {
+export async function uploadUserFile(userId: string, filePathOrBase64: string, name: string, mimeType = 'application/octet-stream'): Promise<StoredFile> {
   try {
     const isDocx = mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || name.toLowerCase().endsWith('.docx')
     const resourceType = isDocx ? 'raw' : 'auto'
@@ -45,30 +50,44 @@ export async function uploadUserFile(userId: string, filePathOrBase64: string, n
 
     const { public_id, secure_url, bytes } = uploadRes as any
 
-    const currentFiles = await readStoredFiles()
-    const savedFile: StoredFile = {
-      id: public_id,
-      user_id: userId,
-      name,
-      mime_type: mimeType,
-      cloudinary_public_id: public_id,
-      cloudinary_url: secure_url,
-      file_size: Number(bytes || 0),
-      created_at: new Date().toISOString(),
+    const supabase = getSupabaseAdminClient()
+    const filesTable = supabase.from('files') as any
+    
+    const { data: saved, error } = await filesTable
+      .insert([{
+        user_id: userId,
+        name,
+        file_type: isDocx ? 'document' : (mimeType.startsWith('image/') ? 'image' : 'document'),
+        mime_type: mimeType,
+        cloudinary_public_id: public_id,
+        cloudinary_url: secure_url,
+        file_size: Number(bytes || 0),
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      throw error
     }
 
-    currentFiles.unshift(savedFile)
-    await writeStoredFiles(currentFiles)
-
-    return savedFile
+    return {
+      id: saved.id,
+      user_id: saved.user_id,
+      name: saved.name,
+      cloudinary_url: saved.cloudinary_url || '',
+      cloudinary_public_id: saved.cloudinary_public_id || '',
+      file_size: Number(saved.file_size || 0),
+      mime_type: saved.mime_type || 'application/octet-stream',
+      created_at: saved.created_at,
+    }
   } catch (err: any) {
     console.error('uploadUserFile error', {
       name,
       mimeType,
       message: err?.message,
       stack: err?.stack,
-      // avoid serializing full error objects with secrets
     })
     throw err
   }
 }
+
